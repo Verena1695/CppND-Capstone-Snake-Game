@@ -1,13 +1,18 @@
 #include "game.h"
 #include <iostream>
 #include "SDL.h"
+#include <algorithm>
 
-Game::Game(std::size_t grid_width, std::size_t grid_height)
+Game::Game(std::size_t grid_width, std::size_t grid_height, int difficulty)
     : snake(grid_width, grid_height),
+      difficulty(difficulty),
       engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
       random_h(0, static_cast<int>(grid_height - 1)) {
   PlaceFood();
+  for (auto i=0; i<difficulty; i++){
+    PlacePoisonousFood();
+  }
 }
 
 void Game::Run(Controller const &controller, Renderer &renderer,
@@ -25,7 +30,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake);
     Update();
-    renderer.Render(snake, food);
+    renderer.Render(snake, food, vector_poisonous_food);
 
     frame_end = SDL_GetTicks();
 
@@ -50,23 +55,66 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   }
 }
 
+// Method to place poisonous food
+void Game::PlacePoisonousFood() {
+  int x, y;
+  bool placeable;
+  while(true){
+    x = random_w(engine);
+    y = random_h(engine);
+    if (!snake.SnakeCell(x, y) && x != food.x && y != food.y) {
+      for (auto i=0; i<vector_poisonous_food.size(); i++){
+          placeable = false;
+          if (x != vector_poisonous_food[i].x && y != vector_poisonous_food[i].y){
+            placeable = true;
+          }
+        }
+      if (placeable == true){
+        single_poisonous_food.x = x;
+        single_poisonous_food.y = y;
+        vector_poisonous_food.push_back(single_poisonous_food);
+        return;
+      }
+    }
+  }
+}
+
 void Game::PlaceFood() {
   int x, y;
+  bool placeable;
   while (true) {
     x = random_w(engine);
     y = random_h(engine);
-    // Check that the location is not occupied by a snake item before placing
+    // Check that the location is not occupied by a snake or poisonous item before placing
     // food.
     if (!snake.SnakeCell(x, y)) {
-      food.x = x;
-      food.y = y;
-      return;
+      for (auto i=0; i<vector_poisonous_food.size(); i++){
+        placeable = false;
+        if (x != vector_poisonous_food[i].x && y != vector_poisonous_food[i].y){
+          placeable = true;
+        }
+      }
+      if (placeable == true){
+        food.x = x;
+        food.y = y;
+        return;
+      }
     }
   }
 }
 
 void Game::Update() {
-  if (!snake.alive) return;
+  // Check if snake ate poisonous food
+  for (auto i=0; i<vector_poisonous_food.size(); i++){
+    if (static_cast<int>(snake.head_x) == vector_poisonous_food[i].x && static_cast<int>(snake.head_y) == vector_poisonous_food[i].y) {
+        snake.alive = false;
+        snake.reason_of_death = "Snake ate poisonous food";
+        return;
+      }
+  }
+  if (!snake.alive){
+    return;
+  }
 
   snake.Update();
 
@@ -80,8 +128,14 @@ void Game::Update() {
     // Grow snake and increase speed.
     snake.GrowBody();
     snake.speed += 0.02;
+    // Newly place poisonous food
+    vector_poisonous_food.clear();
+    for (auto i=0; i<difficulty; i++){
+      PlacePoisonousFood();
+    }
   }
 }
 
 int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
+std::string Game::GetReasonOfDeath() const { return snake.reason_of_death; }

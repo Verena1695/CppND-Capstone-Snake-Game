@@ -1,0 +1,5 @@
+Difficulty   |   Score   |   Snake size  |   Reason of death   |   Time played
+-------------------------------------------------------------------------------
+1   |   5   |   6   |   Snake ate poisonous food   |   38 seconds
+6   |   3   |   4   |   Snake ate poisonous food   |   26 seconds
+1   |   0   |   1   |   Game interrupted before death   |   589 seconds

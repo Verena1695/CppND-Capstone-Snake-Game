@@ -2,6 +2,7 @@
 #define SNAKE_H
 
 #include <vector>
+#include <string>
 #include "SDL.h"
 
 class Snake {
@@ -27,6 +28,7 @@ class Snake {
   float head_x;
   float head_y;
   std::vector<SDL_Point> body;
+  std::string reason_of_death{"Game interrupted before death"};
 
  private:
   void UpdateHead();
